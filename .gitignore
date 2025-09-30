@@ -29,3 +29,5 @@ data/production_rois/*.png
 *.swp
 *.swo
 temp_roi_*.jpg
+test2_*.jpg
+test_*.jpg

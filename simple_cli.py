@@ -55,6 +55,20 @@ def cmd_detect(image_path):
             for i, pred in enumerate(all_results, 1):
                 icon = "[1]" if i == 1 else "[2]" if i == 2 else "[3]" if i == 3 else f"[{i}]"
                 print(f"{icon} {pred['tool']:12} - {pred['score']:.4f} ({pred['description']})")
+            
+            # 创建改进的标注图片
+            try:
+                from improved_annotator import ImprovedAnnotator
+                annotator = ImprovedAnnotator()
+                output_path = annotator.annotate_detection(
+                    image_path, 
+                    best_tool['tool'], 
+                    best_tool['score']
+                )
+                if output_path:
+                    print(f"📸 已生成检测结果图片: {output_path}")
+            except Exception as e:
+                print(f"⚠️ 图片标注失败: {e}")
         else:
             print("检测失败")
         
@@ -119,6 +133,34 @@ def cmd_check(image_path):
             for alert in analysis['alerts']:
                 print(f"  {alert['message']}")
         
+        # 创建专业的工具箱状态标注图片
+        try:
+            from professional_annotator import ProfessionalToolboxAnnotator
+            annotator = ProfessionalToolboxAnnotator()
+            output_path = annotator.create_professional_status_report(
+                image_path, 
+                results,
+                analysis['completeness_rate']
+            )
+            if output_path:
+                print(f"📸 已生成专业工具箱状态报告: {output_path}")
+        except Exception as e:
+            print(f"⚠️ 图片标注失败: {e}")
+            # 备用方案：使用原来的简单标注
+            try:
+                from improved_annotator import ImprovedAnnotator
+                backup_annotator = ImprovedAnnotator()
+                backup_output = backup_annotator.annotate_toolbox_status(
+                    image_path, 
+                    present_tools, 
+                    missing_tools,
+                    analysis['completeness_rate']
+                )
+                if backup_output:
+                    print(f"📸 已生成工具箱状态图片: {backup_output}")
+            except Exception as backup_e:
+                print(f"⚠️ 备用标注也失败: {backup_e}")
+        
     except Exception as e:
         print(f"检测失败: {e}")
         import traceback
@@ -167,6 +209,30 @@ def cmd_enhanced(image_path):
         
         if misplaced_count > 0:
             print(f"\n💡 建议: 有 {misplaced_count} 个工具需要重新整理到正确位置")
+        
+        # 创建增强标注图片
+        try:
+            from enhanced_annotator import EnhancedAnnotator
+            import json
+            
+            # 加载工作空间配置
+            with open('instances_default.json', 'r') as f:
+                data = json.load(f)
+            workspace_config = []
+            categories = {cat['id']: cat['name'] for cat in data['categories']}
+            for ann in data['annotations']:
+                workspace_config.append({
+                    'name': categories[ann['category_id']],
+                    'bbox': ann['bbox']
+                })
+            
+            annotator = EnhancedAnnotator()
+            output_path = annotator.create_enhanced_annotation(image_path, results, workspace_config)
+            if output_path:
+                print(f"📸 已生成增强检测可视化图片: {output_path}")
+                
+        except Exception as e:
+            print(f"⚠️ 图片标注失败: {e}")
         
     except Exception as e:
         print(f"增强检测失败: {e}")

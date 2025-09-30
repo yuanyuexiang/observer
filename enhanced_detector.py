@@ -70,7 +70,7 @@ class EnhancedToolDetector:
             roi.save(roi_path)
             
             # 检测这个区域最像什么工具
-            detection_result = self.simple_detector.detect_tools_in_image(roi_path)
+            detection_result = self.simple_detector.detect_tools_in_image(roi_path, save_result=False)
             
             if detection_result:
                 best_tool = detection_result['best_tool']
@@ -85,6 +85,14 @@ class EnhancedToolDetector:
                 }
                 
                 print(f"  {expected_tool:15} 位置 → 检测到: {detected_tool:12} (置信度: {confidence:.4f})")
+                
+                # 保存带标注的ROI图片（可选）
+                try:
+                    from improved_annotator import ImprovedAnnotator
+                    annotator = ImprovedAnnotator()
+                    annotator.create_annotated_image(roi_path, detection_result)
+                except:
+                    pass  # 忽略标注错误
             
             # 清理临时文件
             if os.path.exists(roi_path):

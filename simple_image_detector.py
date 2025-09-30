@@ -99,7 +99,18 @@ class SimpleImageDetector:
             
             # 保存带标注的结果图片
             if save_result:
-                self.save_annotated_image(image, image_path, best_result, results[:3])
+                # 使用改进的标注功能
+                try:
+                    from improved_annotator import ImprovedAnnotator
+                    annotator = ImprovedAnnotator()
+                    annotator.create_annotated_image(image_path, {
+                        'best_tool': best_result,
+                        'all_results': results,
+                        'timestamp': datetime.now().isoformat()
+                    })
+                except ImportError:
+                    # 如果导入失败，使用原始方法
+                    self.save_annotated_image(image, image_path, best_result, results[:3])
             
             return {
                 'image_path': image_path,
