@@ -15,10 +15,12 @@ def show_help():
     print("\n命令:")
     print("  detect <image>        简单检测图片中的工具")
     print("  check <image>         详细检测工具箱中缺失的工具")
+    print("  enhanced <image>      增强检测，包括错位工具")
     print("  help                  显示帮助信息")
     print("\n示例:")
     print("  python simple_cli.py detect test.jpg    # 简单分类")
     print("  python simple_cli.py check test.jpg     # 缺失检测")
+    print("  python simple_cli.py enhanced test.jpg  # 错位检测")
     print("")
 
 def cmd_detect(image_path):
@@ -122,6 +124,55 @@ def cmd_check(image_path):
         import traceback
         traceback.print_exc()
 
+def cmd_enhanced(image_path):
+    """增强检测工具箱中的错位工具"""
+    if not os.path.exists(image_path):
+        print(f"错误: 图片文件不存在: {image_path}")
+        return
+    
+    print(f"开始增强检测工具箱: {image_path}")
+    
+    try:
+        from enhanced_detector import EnhancedToolDetector
+        
+        detector = EnhancedToolDetector()
+        results = detector.detect_with_misplacement_check(image_path)
+        
+        print(f"\n=== 增强检测结果 ===")
+        
+        correct_count = 0
+        misplaced_count = 0
+        missing_count = 0
+        
+        for result in results:
+            if result.actual_status == 'correct':
+                icon = '✅'
+                status_text = '在正确位置'
+                correct_count += 1
+            elif result.actual_status == 'misplaced':
+                icon = '🔄'
+                status_text = f'位置错误 (在{result.found_at}发现)'
+                misplaced_count += 1
+            else:
+                icon = '❌'
+                status_text = '检测困难/缺失'
+                missing_count += 1
+            
+            print(f"{result.tool_name:15} {icon} {status_text}")
+        
+        print(f"\n=== 状态统计 ===")
+        print(f"正确位置: {correct_count} ✅")
+        print(f"位置错误: {misplaced_count} 🔄")
+        print(f"检测困难: {missing_count} ❌")
+        
+        if misplaced_count > 0:
+            print(f"\n💡 建议: 有 {misplaced_count} 个工具需要重新整理到正确位置")
+        
+    except Exception as e:
+        print(f"增强检测失败: {e}")
+        import traceback
+        traceback.print_exc()
+
 def main():
     """主函数"""
     if len(sys.argv) < 2:
@@ -143,6 +194,13 @@ def main():
             print("用法: python simple_cli.py check <image_path>")
             return
         cmd_check(sys.argv[2])
+    
+    elif command == "enhanced":
+        if len(sys.argv) < 3:
+            print("错误: 请提供图片路径")
+            print("用法: python simple_cli.py enhanced <image_path>")
+            return
+        cmd_enhanced(sys.argv[2])
     
     elif command in ["help", "-h", "--help"]:
         show_help()

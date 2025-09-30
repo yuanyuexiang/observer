@@ -28,3 +28,4 @@ data/production_rois/*.png
 .idea/
 *.swp
 *.swo
+temp_roi_*.jpg
