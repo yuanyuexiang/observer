@@ -31,3 +31,4 @@ data/production_rois/*.png
 temp_roi_*.jpg
 test2_*.jpg
 test_*.jpg
+temp_*.jpg

@@ -6,22 +6,73 @@
 import sys
 import os
 
+def cmd_video(source, interval=10, max_frames=None):
+    """视频流检测命令"""
+    try:
+        from video_detector import VideoToolDetector
+        
+        print(f"🎥 开始视频流工具检测")
+        print(f"📍 数据源: {source}")
+        print(f"⏱️ 检测间隔: {interval}秒")
+        if max_frames:
+            print(f"🔢 最大帧数: {max_frames}")
+        
+        # 初始化视频检测器
+        video_detector = VideoToolDetector()
+        video_detector.detection_interval = interval
+        
+        if not video_detector.setup_detectors():
+            return
+        
+        # 判断数据源类型并处理
+        if source.isdigit():
+            # 摄像头设备
+            camera_id = int(source)
+            video_detector.process_camera_stream(camera_id)
+        elif os.path.isfile(source):
+            # 视频文件
+            video_detector.process_video_file(source, max_frames)
+        else:
+            print(f"❌ 数据源不存在: {source}")
+            
+    except Exception as e:
+        print(f"视频检测失败: {e}")
+        import traceback
+        traceback.print_exc()
+
 def show_help():
     """显示帮助信息"""
-    print("\n工具检测系统 - 命令行工具")
-    print("=" * 40)
-    print("使用方法:")
-    print("  python simple_cli.py <command> [options]")
-    print("\n命令:")
-    print("  detect <image>        简单检测图片中的工具")
-    print("  check <image>         详细检测工具箱中缺失的工具")
-    print("  enhanced <image>      增强检测，包括错位工具")
-    print("  help                  显示帮助信息")
-    print("\n示例:")
-    print("  python simple_cli.py detect test.jpg    # 简单分类")
-    print("  python simple_cli.py check test.jpg     # 缺失检测")
-    print("  python simple_cli.py enhanced test.jpg  # 错位检测")
-    print("")
+    print("""
+🔧 智能工具检测系统 v2.0
+
+📋 可用命令:
+  detect <image_path>                    - 基础工具检测
+  check <image_path>                     - 工具箱状态检查  
+  enhanced <image_path>                  - 增强检测（检测位置错误）
+  video <source> [options]               - 视频流工具检测
+
+📱 video命令选项:
+  <source>                               - 数据源：
+                                          • 摄像头ID: 0, 1, 2... (实时监控)
+                                          • 视频文件路径 (批量检测)
+  --interval <seconds>                   - 检测间隔（默认10秒）
+  --max-frames <number>                  - 最大检测帧数（仅视频文件）
+
+💡 使用示例:
+  python simple_cli.py detect test.jpg                    # 检测图片中的工具
+  python simple_cli.py check test2.jpg                    # 检查工具箱状态
+  python simple_cli.py enhanced test3.jpg                 # 检测工具位置错误
+  python simple_cli.py video 0                            # 实时监控摄像头0
+  python simple_cli.py video 0 --interval 5               # 每5秒检测一次
+  python simple_cli.py video video.mp4                    # 检测视频文件
+  python simple_cli.py video video.mp4 --max-frames 5     # 最多检测5帧
+
+🎥 视频检测特性:
+  • 实时摄像头监控 - 按 'q' 退出，按 'd' 手动检测
+  • 视频文件批量处理 - 按时间间隔自动检测
+  • 专业报告生成 - 每次检测都生成完整报告
+  • 智能帧采样 - 避免重复检测相似帧
+    """)
 
 def cmd_detect(image_path):
     """检测命令"""
@@ -267,6 +318,39 @@ def main():
             print("用法: python simple_cli.py enhanced <image_path>")
             return
         cmd_enhanced(sys.argv[2])
+    
+    elif command == "video":
+        if len(sys.argv) < 3:
+            print("错误: 请提供数据源")
+            print("用法: python simple_cli.py video <source> [--interval <seconds>] [--max-frames <number>]")
+            return
+        
+        source = sys.argv[2]
+        interval = 10
+        max_frames = None
+        
+        # 解析可选参数
+        i = 3
+        while i < len(sys.argv):
+            if sys.argv[i] == '--interval' and i + 1 < len(sys.argv):
+                try:
+                    interval = int(sys.argv[i + 1])
+                    i += 2
+                except ValueError:
+                    print("错误: interval 必须是整数")
+                    return
+            elif sys.argv[i] == '--max-frames' and i + 1 < len(sys.argv):
+                try:
+                    max_frames = int(sys.argv[i + 1])
+                    i += 2
+                except ValueError:
+                    print("错误: max-frames 必须是整数")
+                    return
+            else:
+                print(f"未知参数: {sys.argv[i]}")
+                return
+        
+        cmd_video(source, interval, max_frames)
     
     elif command in ["help", "-h", "--help"]:
         show_help()
