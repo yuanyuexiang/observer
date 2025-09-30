@@ -36,7 +36,7 @@ class VideoToolDetector:
                     self.clip_model = 'ViT-B-32'
                     self.clip_pretrained = 'openai'
                     self.device = 'cpu'
-                    self.confidence_threshold = 0.0
+                    self.confidence_threshold = 0.0005
                     self.log_level = 'ERROR'
                     self.save_roi_images = True
                     self.output_dir = '.'
@@ -241,6 +241,95 @@ class VideoToolDetector:
             print(f"\n🎉 实时监控结束!")
             print(f"📊 总计进行了 {detection_count} 次检测")
 
+    def process_rtsp_stream(self, rtsp_url):
+        """处理RTSP视频流"""
+        print(f"\n📡 开始连接RTSP流: {rtsp_url}")
+        
+        # 尝试连接RTSP流
+        cap = cv2.VideoCapture(rtsp_url)
+        
+        # 设置一些参数来改善RTSP连接
+        cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)  # 减少缓冲区大小，降低延迟
+        cap.set(cv2.CAP_PROP_FPS, 25)        # 设置帧率
+        
+        if not cap.isOpened():
+            print(f"❌ 无法连接RTSP流: {rtsp_url}")
+            print("💡 请检查:")
+            print("   • 网络连接是否正常")
+            print("   • RTSP URL是否正确")
+            print("   • 摄像头是否在线")
+            print("   • 防火墙是否阻止连接")
+            print("\n🔧 常见RTSP地址格式:")
+            print("   • rtsp://IP:554/stream")
+            print("   • rtsp://IP:8080/h264.sdp")
+            print("   • rtsp://username:password@IP:PORT/stream")
+            print("   • rtsp://admin:admin@192.168.1.100:554/stream")
+            print("\n🛠️ 调试建议:")
+            print("   1. 用VLC播放器测试RTSP地址")
+            print("   2. 检查摄像头web管理界面")
+            print("   3. 确认端口号和路径正确")
+            print("   4. 尝试不同的RTSP路径 (/stream, /h264, /video)")
+            return
+        
+        print(f"✅ RTSP流连接成功!")
+        print(f"🔍 检测间隔: 每 {self.detection_interval} 秒")
+        print(f"🚪 按 'q' 键退出，按 'd' 键立即检测")
+        
+        self.is_running = True
+        detection_count = 0
+        
+        try:
+            while self.is_running:
+                ret, frame = cap.read()
+                if not ret:
+                    print("⚠️ RTSP流中断，尝试重连...")
+                    cap.release()
+                    time.sleep(2)  # 等待2秒再重连
+                    cap = cv2.VideoCapture(rtsp_url)
+                    cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+                    cap.set(cv2.CAP_PROP_FPS, 25)
+                    continue
+                
+                # 显示实时画面
+                cv2.imshow('RTSP工具检测监控', frame)
+                
+                current_time = time.time()
+                
+                # 定时检测或手动触发检测
+                should_detect = (current_time - self.last_detection_time >= self.detection_interval)
+                
+                key = cv2.waitKey(1) & 0xFF
+                if key == ord('q'):
+                    print("\n👋 用户主动退出")
+                    break
+                elif key == ord('d'):
+                    should_detect = True
+                    print("\n🔍 手动触发检测")
+                
+                if should_detect:
+                    detection_count += 1
+                    print(f"\n{'='*50}")
+                    print(f"📍 RTSP检测 {detection_count}")
+                    
+                    analysis = self.detect_frame(frame, f"rtsp_{detection_count}")
+                    self.last_detection_time = current_time
+                    
+                    # 在窗口标题显示最新状态
+                    if analysis:
+                        completeness = analysis['completeness_rate']
+                        window_title = f"RTSP工具检测监控 - 完整性: {completeness:.1f}%"
+                        cv2.setWindowTitle('RTSP工具检测监控', window_title)
+        
+        except Exception as e:
+            print(f"❌ RTSP流处理出错: {e}")
+        
+        finally:
+            self.is_running = False
+            cap.release()
+            cv2.destroyAllWindows()
+            print(f"\n🎉 RTSP监控结束!")
+            print(f"📊 总计进行了 {detection_count} 次检测")
+
 def main():
     """主函数"""
     import argparse
@@ -267,6 +356,11 @@ def main():
         camera_id = int(source)
         print(f"🎥 检测模式: 实时摄像头 (设备ID: {camera_id})")
         video_detector.process_camera_stream(camera_id)
+    
+    elif source.startswith('rtsp://'):
+        # RTSP网络摄像头
+        print(f"📡 检测模式: RTSP网络摄像头")
+        video_detector.process_rtsp_stream(source)
     
     elif os.path.isfile(source):
         # 检查是否为视频文件

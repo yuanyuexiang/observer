@@ -29,11 +29,18 @@ def cmd_video(source, interval=10, max_frames=None):
             # 摄像头设备
             camera_id = int(source)
             video_detector.process_camera_stream(camera_id)
+        elif source.startswith('rtsp://'):
+            # RTSP网络摄像头
+            video_detector.process_rtsp_stream(source)
         elif os.path.isfile(source):
             # 视频文件
             video_detector.process_video_file(source, max_frames)
         else:
             print(f"❌ 数据源不存在: {source}")
+            print("💡 支持的数据源格式:")
+            print("   • 摄像头ID: 0, 1, 2...")
+            print("   • RTSP流: rtsp://ip:port/path")
+            print("   • 视频文件: video.mp4")
             
     except Exception as e:
         print(f"视频检测失败: {e}")
@@ -55,6 +62,7 @@ def show_help():
   <source>                               - 数据源：
                                           • 摄像头ID: 0, 1, 2... (实时监控)
                                           • 视频文件路径 (批量检测)
+                                          • RTSP流: rtsp://ip:port/path (网络摄像头)
   --interval <seconds>                   - 检测间隔（默认10秒）
   --max-frames <number>                  - 最大检测帧数（仅视频文件）
 
@@ -66,6 +74,13 @@ def show_help():
   python simple_cli.py video 0 --interval 5               # 每5秒检测一次
   python simple_cli.py video video.mp4                    # 检测视频文件
   python simple_cli.py video video.mp4 --max-frames 5     # 最多检测5帧
+  python simple_cli.py video rtsp://192.168.1.100:8080/h264.sdp  # 监控RTSP网络摄像头
+
+📡 RTSP网络摄像头特性:
+  • 支持主流RTSP协议网络摄像头
+  • 自动断线重连机制
+  • 实时画面显示和工具检测
+  • 按 'q' 键退出，按 'd' 键立即检测
 
 🎥 视频检测特性:
   • 实时摄像头监控 - 按 'q' 退出，按 'd' 手动检测
@@ -141,7 +156,7 @@ def cmd_check(image_path):
         from production_tool_detector import ProductionToolDetector, SystemConfig
         
         config = SystemConfig(
-            confidence_threshold=0.0001,
+            confidence_threshold=0.0005,
             uncertainty_threshold=-0.0001,
             save_roi_images=False,
             log_level='ERROR'

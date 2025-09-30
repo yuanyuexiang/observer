@@ -30,7 +30,7 @@ def show_professional_annotation_demo():
     # 测试图片和预期结果
     test_cases = [
         {
-            'image': 'test.jpg',
+            'image': 'test2.jpg',
             'description': '完美工具箱 (100%完整性)',
             'expected': '✅ 所有工具都在正确位置'
         },
